@@ -64,6 +64,9 @@ INSTALLED_APPS = [
     # ── local ─────────────────────────────────────────────
     "apps.users",
     "apps.location",
+    'apps.travel',
+    'apps.ai_plans',
+    'apps.saved_locations',
 ]
 
 # ===========================================================
@@ -218,11 +221,16 @@ REST_FRAMEWORK = {
 # DRF SPECTACULAR (Swagger)
 # ===========================================================
 SPECTACULAR_SETTINGS = {
-    "TITLE":                 "Z Trip API",
-    "DESCRIPTION":           "AI Audio Guide & Travel Planner API",
-    "VERSION":               "1.0.0",
-    "SERVE_INCLUDE_SCHEMA":  False,
+    "TITLE": "Z Trip API",
+    "DESCRIPTION": "Travel application API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "TravelStatusEnum": "apps.travel.models.TravelStatus",
+        "AIPlanStatusEnum": "apps.ai_plans.models.AIPlanStatus",
+        "LocationTypeEnum": "apps.location.models.LocationType",
+    },
 }
 
 # ===========================================================
@@ -255,11 +263,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 AWS_ACCESS_KEY_ID       = config("MINIO_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY   = config("MINIO_SECRET_KEY")
 AWS_STORAGE_BUCKET_NAME = config("MINIO_BUCKET")
-AWS_S3_ENDPOINT_URL     = f"http://{config('MINIO_ENDPOINT')}"
+AWS_S3_ENDPOINT_URL     = f"http://{config('MINIO_ENDPOINT')}"  # ← .env da 9002
 AWS_DEFAULT_ACL         = "public-read"
 AWS_S3_FILE_OVERWRITE   = False
 AWS_QUERYSTRING_AUTH    = False
 AWS_S3_VERIFY           = False
+
+MEDIA_URL = f"http://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"  # ← shu qator qo'shing
 
 STORAGES = {
     "default": {
@@ -278,8 +288,8 @@ MEDIA_URL = f"http://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"
 AI_PROVIDER = config("AI_PROVIDER", default="megallm")
 
 # MegaLLM  (hozirgi bepul provider)
-MEGALLM_API_KEY  = config("MEGALLM_API_KEY",  default=None)
-MEGALLM_BASE_URL = config("MEGALLM_BASE_URL", default="https://api.megallm.io/v1")
+MEGALLM_API_KEY  = config("MEGALLM_API_KEY")
+MEGALLM_BASE_URL = config("MEGALLM_BASE_URL", default="https://ai.megallm.io/v1")
 
 # OpenAI  (keyinroq ulanadi)
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
@@ -294,3 +304,10 @@ CELERY_RESULT_BACKEND                = config("REDIS_URL", default="redis://loca
 CELERY_ACCEPT_CONTENT                = ["json"]
 CELERY_TASK_SERIALIZER               = "json"
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+CACHES = {
+    "default": {
+        "BACKEND":  "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
+    }
+}

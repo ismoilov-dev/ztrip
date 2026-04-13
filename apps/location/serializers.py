@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Location
+from drf_spectacular.utils import extend_schema_field
 
 
 # ─── constants ────────────────────────────────────────────────────────────────
@@ -48,61 +49,55 @@ class AudioUploadSerializer(serializers.Serializer):
 
 class LocationListSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source="get_type_display", read_only=True)
-    image        = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
-        model  = Location
+        model = Location
         fields = [
             "id", "name", "city", "country",
-            "type", "type_display",
-            "image", "price", "is_premium",
-            "latitude", "longitude",
+            "type", "type_display", "image",
+            "price", "is_premium", "latitude", "longitude",
         ]
 
+    @extend_schema_field(serializers.URLField())  # ← shu
     def get_image(self, obj):
-        return _absolute_url(self.context.get("request"), obj.image)
+        if obj.image:
+            return obj.image.url
+        return None
 
-
-# ─── detail ───────────────────────────────────────────────────────────────────
 
 class LocationDetailSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source="get_type_display", read_only=True)
-    image        = serializers.SerializerMethodField()
-    audio        = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    audio = serializers.SerializerMethodField()
 
     class Meta:
-        model  = Location
+        model = Location
         fields = [
-            "id", "name", "description",
-            "image", "audio",
-            "price", "country", "city",
-            "latitude", "longitude",
-            "type", "type_display",
-            "is_premium", "created_at",
+            "id", "name", "description", "image", "audio",
+            "price", "country", "city", "latitude", "longitude",
+            "type", "type_display", "is_premium", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 
+    @extend_schema_field(serializers.URLField())
     def get_image(self, obj):
-        return _absolute_url(self.context.get("request"), obj.image)
+        if obj.image:
+            return obj.image.url
+        return None
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_audio(self, obj):
         if not obj.audio:
             return None
-
-        # Free content — always visible
         if not obj.is_premium:
-            return _absolute_url(self.context.get("request"), obj.audio)
-
-        # Premium content — only for active subscribers
+            return obj.audio.url
         request = self.context.get("request")
-        if (
-            request
-            and request.user.is_authenticated
-            # and request.user.subscriptions.filter(is_active=True).exists()
-        ):
-            return _absolute_url(request, obj.audio)
-
+        if request and request.user.is_authenticated:
+            # if request.user.subscriptions.filter(is_active=True).exists():
+            return obj.audio.url
         return None
+
 
 
 # ─── write (create / update) ──────────────────────────────────────────────────
@@ -131,3 +126,13 @@ class LocationWriteSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Create/update dan keyin DetailSerializer qaytaradi."""
         return LocationDetailSerializer(instance, context=self.context).data
+
+    def validate_latitude(self, value):
+        if not(-90 <= value <= 90):
+            raise serializers.ValidationError("Latitude must be between -90 and 90")
+        return round(value, 6)
+
+    def validate_longitude(self, value):
+        if not(-180 <= value <= 180):
+            raise serializers.ValidationError("Longitude must be between -180 and 180")
+        return round(value, 6)

@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class AiPlansConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "ai_plans"
+    name = "apps.ai_plans"

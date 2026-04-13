@@ -1,6 +1,9 @@
 run:
 	uvicorn config.asgi:application --reload & celery -A config worker --loglevel=info
 
+run1:
+	uvicorn config.asgi:application --reload
+
 migrate:
 	python manage.py migrate
 

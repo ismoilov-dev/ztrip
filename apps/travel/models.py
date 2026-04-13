@@ -88,6 +88,7 @@ class TravelLocation(models.Model):
         # o'sha kun ichidagi tartib
     )
 
+
     class Meta:
         db_table = "travel_locations"
         verbose_name = _("travel location")

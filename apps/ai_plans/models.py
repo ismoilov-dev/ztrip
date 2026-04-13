@@ -1,6 +1,6 @@
 from django.db import models
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from apps.travel.models import Travel
 
 
 class AIPlanStatus(models.TextChoices):
@@ -17,28 +17,73 @@ class AIPlan(models.Model):
       "days": [
         {
           "day": 1,
+          "title": "Tarixiy Samarqand",
           "locations": [
-            {"name": "...", "lat": ..., "lng": ..., "duration_min": 60}
+            {
+              "id": 3,
+              "duration_min": 90,
+              "best_time": "09:00",
+              "tip": "Erta keling"
+            }
           ]
         }
       ],
-      "tips": "...",
-      "estimated_cost": 150.0
+      "total_estimated_cost": 250000,
+      "best_season": "Bahor",
+      "summary": "...",
+      "tips": "..."
     }
     """
-    travel = models.OneToOneField(
-        Travel,
+
+    # ── Kimniki ───────────────────────────────────────────────
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+        related_name="ai_plans",
+        verbose_name=_("user"),
+    )
+
+    # ── Travel bog'lanishi (apply dan keyin) ──────────────────
+    travel = models.OneToOneField(
+        "travel.Travel",          # string → circular import yo'q
+        on_delete=models.SET_NULL,  # travel o'chsa plan qoladi
         related_name="ai_plan",
         verbose_name=_("travel"),
+        null=True,                 # generate da travel yo'q
+        blank=True,
     )
+
+    # ── Shahar — erkin yoziladi ───────────────────────────────
+    # "Samarqand", "Xiva", "Toshkent" yoki "Paris"
+    # AI shu shahar bo'yicha DB dan location qidiradi
     city = models.CharField(
         _("city"),
         max_length=100,
+        db_index=True,
     )
     days = models.PositiveSmallIntegerField(
         _("number of days"),
     )
+    budget = models.DecimalField(
+        _("budget"),
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    interests = models.JSONField(
+        _("interests"),
+        default=list,
+        blank=True,
+        # ["historical", "museum", "nature"]
+    )
+    language = models.CharField(
+        _("language"),
+        max_length=5,
+        default="uz",
+    )
+
+    # ── AI natijasi ───────────────────────────────────────────
     status = models.CharField(
         _("status"),
         max_length=20,
@@ -51,10 +96,15 @@ class AIPlan(models.Model):
         default=dict,
         blank=True,
     )
+    ai_model_used = models.CharField(
+        _("AI model used"),
+        max_length=50,
+        blank=True,
+        # qaysi model ishlatilganini saqlaydi: "gemini-2.5-flash"
+    )
     prompt_used = models.TextField(
         _("prompt used"),
         blank=True,
-        # debug uchun OpenAI ga yuborilgan prompt
     )
     created_at = models.DateTimeField(
         _("created at"),
@@ -66,6 +116,14 @@ class AIPlan(models.Model):
         verbose_name = _("AI plan")
         verbose_name_plural = _("AI plans")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["city"]),
+        ]
 
     def __str__(self):
-        return f"AI Plan — {self.city} {self.days} kun"
+        return f"AI Plan — {self.city} {self.days} kun ({self.user})"
+
+    @property
+    def is_applied(self):
+        return self.status == AIPlanStatus.APPLIED

@@ -21,6 +21,11 @@ urlpatterns = [
 
     path('', include('apps.users.urls')),
     path('', include('apps.location.urls')),
+    path('', include('apps.travel.urls')),
+    path('', include('apps.ai_plans.urls')),
+    path('', include('apps.travel.urls')),
+    path('', include('apps.saved_locations.urls')),
+
 
 ]
 
