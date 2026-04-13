@@ -2,21 +2,25 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiExample
-from rest_framework import generics, status
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from apps.travel.travelserializers.travellistserializers import (
     TravelListSerializer,
-    TravelWriteSerializers
+    TravelWriteSerializers,
 )
 from apps.location.models import Location
 from .models import Travel, TravelLocation
 from .serializers import TravelDetailSerializer
 
+
+@extend_schema_view(
+    get=extend_schema(summary="Sayohatlar ro'yxati"),
+    post=extend_schema(summary="Yangi sayohat yaratish"),
+)
 class TravelListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):  
+        if getattr(self, 'swagger_fake_view', False):
             return Travel.objects.none()
         return Travel.objects.filter(
             user=self.request.user
@@ -29,16 +33,26 @@ class TravelListCreateView(generics.ListCreateAPIView):
             return TravelListSerializer
         return TravelWriteSerializers
 
+
+@extend_schema_view(
+    get=extend_schema(summary="Sayohat detail"),
+    put=extend_schema(summary="Sayohatni tahrirlash"),
+    patch=extend_schema(summary="Sayohatni qisman tahrirlash"),
+    delete=extend_schema(summary="Sayohatni o'chirish"),
+)
 class TravelDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Travel.objects.none()
         return Travel.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
-            return TravelWriteSerializers   # ← yozish uchun
+            return TravelWriteSerializers
         return TravelDetailSerializer
+
 
 class TravelLocationView(APIView):
     permission_classes = [IsAuthenticated]
@@ -52,7 +66,7 @@ class TravelLocationView(APIView):
                     "action": {
                         "type": "string",
                         "enum": ["add", "remove", "reorder"],
-                        "example": "add"
+                        "example": "add",
                     },
                     "location_id":        {"type": "integer", "example": 3},
                     "visit_day":          {"type": "integer", "example": 1},
@@ -66,8 +80,8 @@ class TravelLocationView(APIView):
                                 "travel_location_id": {"type": "integer"},
                                 "visit_day":          {"type": "integer"},
                                 "order_index":        {"type": "integer"},
-                            }
-                        }
+                            },
+                        },
                     },
                 },
                 "required": ["action"],
@@ -78,9 +92,9 @@ class TravelLocationView(APIView):
     def post(self, request, pk):
         travel = Travel.objects.filter(pk=pk, user=request.user).first()
         if not travel:
-            return Response({'error': 'travel topilmadi! '}, status=404)
+            return Response({'error': 'travel topilmadi!'}, status=404)
         action = request.data.get('action')
-        # -- ADD --
+
         if action == 'add':
             location = Location.objects.filter(
                 id=request.data.get('location_id')
@@ -91,32 +105,34 @@ class TravelLocationView(APIView):
                 travel=travel,
                 location=location,
                 defaults={
-                    'visit_day': request.data.get('visit_day', 1),
-                    'order_index': request.data.get('order_index', 0)
+                    'visit_day':   request.data.get('visit_day', 1),
+                    'order_index': request.data.get('order_index', 0),
                 },
             )
             if not created:
                 return Response({'error': 'Allaqachon bor'}, status=400)
             return Response({"message": "Qo'shildi.", "id": t1.id}, status=201)
-        # remove
+
         if action == "remove":
             TravelLocation.objects.filter(
                 id=request.data.get('travel_location_id'),
                 travel=travel,
             ).delete()
-            return Response({'message': "O'chirildi! "})
-        # reorder
+            return Response({'message': "O'chirildi!"})
+
         if action == "reorder":
             for item in request.data.get('order', []):
                 TravelLocation.objects.filter(
                     id=item.get('travel_location_id'),
-                    travel=travel
+                    travel=travel,
                 ).update(
                     visit_day=item.get('visit_day', 1),
                     order_index=item.get("order_index", 0),
                 )
-            return Response({'message': 'Tartib yangilandi! '})
+            return Response({'message': 'Tartib yangilandi!'})
+
         return Response({"error": "action noto'g'ri."}, status=400)
+
 
 class TravelStatusView(APIView):
     permission_classes = [IsAuthenticated]
@@ -144,7 +160,10 @@ class TravelStatusView(APIView):
             return Response({"error": "Travel topilmadi."}, status=404)
 
         if travel.status == "cancelled":
-            return Response({"error": "Bekor qilingan travel o'zgartirilmaydi."}, status=400)
+            return Response(
+                {"error": "Bekor qilingan travel o'zgartirilmaydi."},
+                status=400,
+            )
 
         new_status = request.data.get("status")
         if new_status not in ["active", "completed", "cancelled"]:

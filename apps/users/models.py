@@ -76,6 +76,13 @@ class User(AbstractUser):
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+    
+    @property
+    def is_premium(self):
+        return self.subscriptions.filter(
+        plan="premium",
+        is_active=True,
+    ).exists()
 
     class Meta:
         db_table = "users"

@@ -4,25 +4,34 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view
 from core.permissions import IsAdminOrReadOnly
 from core.paginations import CustomPagination
 from .models import Location
-from .tasks import generate_audio_task  # ← bitta import
+from .tasks import generate_audio_task
 from .serializers import (
     LocationDetailSerializer,
     LocationListSerializer,
     LocationWriteSerializer,
 )
 
-
+@extend_schema_view(
+    list=extend_schema(summary="Locationlar ro'yxati"),
+    retrieve=extend_schema(summary="Bitta location detail"),
+    create=extend_schema(summary="Yangi location qo'shish (admin)"),
+    update=extend_schema(summary="Locationni tahrirlash (admin)"),
+    partial_update=extend_schema(summary="Locationni qisman tahrirlash (admin)"),
+    destroy=extend_schema(summary="Locationni o'chirish (admin)"),
+)
 @method_decorator(cache_page(60 * 15), name="list")  # 15 daqiqa cache
 class LocationViewSet(ModelViewSet):
     queryset           = Location.objects.all()
     permission_classes = [IsAdminOrReadOnly]
     parser_classes     = [MultiPartParser, FormParser, JSONParser]
     pagination_class   = CustomPagination
-
+    extend_schema(
+        summary="Locationlar ro'yxati",
+    )
     def get_serializer_class(self):
         if self.action == "list":
             return LocationListSerializer

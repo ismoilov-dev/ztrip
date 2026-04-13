@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'apps.travel',
     'apps.ai_plans',
     'apps.saved_locations',
+    'apps.subscriptions',
 ]
 
 # ===========================================================
@@ -110,7 +111,10 @@ TEMPLATES = [
 # DATABASE
 # ===========================================================
 DATABASES = {
-    "default": dj_database_url.config(default=config("DATABASE_URL")),
+    "default": dj_database_url.config(
+        default=config("DATABASE_URL"),
+        conn_max_age=600,
+    )
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

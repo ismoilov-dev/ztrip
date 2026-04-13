@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
-    TokenRefreshView,
+    # TokenRefreshView,
 )
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -17,7 +17,7 @@ urlpatterns = [
         name="swagger-ui",
     ),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain"),
-    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
     path('', include('apps.users.urls')),
     path('', include('apps.location.urls')),
@@ -25,7 +25,7 @@ urlpatterns = [
     path('', include('apps.ai_plans.urls')),
     path('', include('apps.travel.urls')),
     path('', include('apps.saved_locations.urls')),
-
+    path('', include('apps.subscriptions.urls')),
 
 ]
 

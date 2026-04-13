@@ -6,8 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 class PlanType(models.TextChoices):
     FREE    = "free",    _("Free")
-    MONTHLY = "monthly", _("Monthly")
-    YEARLY  = "yearly",  _("Yearly")
+    PREMIUM = "premium", _("Premium")
 
 
 class Subscription(models.Model):
@@ -36,7 +35,7 @@ class Subscription(models.Model):
         _("expires at"),
         null=True,
         blank=True,
-        # Free plan uchun null (muddatsiz)
+        # Free → null, Premium → muddati bor
     )
 
     class Meta:
@@ -53,6 +52,10 @@ class Subscription(models.Model):
         if self.expires_at is None:
             return False
         return timezone.now() > self.expires_at
+
+    @property
+    def is_premium(self):
+        return self.plan == PlanType.PREMIUM and self.is_active and not self.is_expired
 
     def deactivate(self):
         self.is_active = False

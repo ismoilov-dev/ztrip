@@ -3,8 +3,8 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class IsAdminOrReadOnly(BasePermission):
     """
-    GET, HEAD, OPTIONS  — hamma (anonymous ham)
-    POST, PUT, PATCH, DELETE — faqat is_staff=True
+    GET, HEAD, OPTIONS  — hamma
+    POST, PUT, PATCH, DELETE — faqat admin
     """
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
@@ -14,9 +14,8 @@ class IsAdminOrReadOnly(BasePermission):
 
 class IsPremiumOrFreeContent(BasePermission):
     """
-    Object darajasida tekshiruv:
-    - is_premium=False  → hamma ko'ra oladi
-    - is_premium=True   → faqat aktiv subscriptioni bor user
+    is_premium=False → hamma
+    is_premium=True  → faqat premium user
     """
     def has_object_permission(self, request, view, obj):
         if not obj.is_premium:
@@ -24,5 +23,6 @@ class IsPremiumOrFreeContent(BasePermission):
         if not request.user.is_authenticated:
             return False
         return request.user.subscriptions.filter(
-            is_active=True
+            plan="premium",    # ← qo'shildi
+            is_active=True,
         ).exists()
