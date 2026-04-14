@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import Travel, TravelLocation
 from unfold.admin import ModelAdmin
-admin.site.register(Travel)
+
+@admin.register(Travel)
 class TravelAdmin(ModelAdmin):
     list_display = ('id', 'user', 'city', 'start_date', 'end_date', 'status')
     list_filter = ('status', 'city')

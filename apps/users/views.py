@@ -15,7 +15,7 @@ def _jwt_tokens(user):
         "access":  str(refresh.access_token),
     }
 
-
+extend_schema(summary='Google auth')
 class GoogleAuthView(GenericAPIView):
     permission_classes     = [AllowAny]
     authentication_classes = []
