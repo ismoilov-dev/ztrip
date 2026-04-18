@@ -94,7 +94,7 @@ WSGI_APPLICATION  = "config.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -118,7 +118,7 @@ DATABASES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
+ASGI_APPLICATION = "config.asgi.application"
 # ===========================================================
 # AUTHENTICATION
 # ===========================================================
@@ -297,7 +297,7 @@ MEGALLM_BASE_URL = config("MEGALLM_BASE_URL", default="https://ai.megallm.io/v1"
 
 # OpenAI  (keyinroq ulanadi)
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
-
+GEMINI_API_KEY = config("GEMINI_API_KEY", default=None)
 # ElevenLabs  (ko'p tilli ovoz uchun)
 ELEVENLABS_API_KEY  = config("ELEVENLABS_API_KEY",  default=None)
 ELEVENLABS_VOICE_ID = config("ELEVENLABS_VOICE_ID", default="21m00Tcm4TlvDq8ikWAM")
@@ -313,5 +313,12 @@ CACHES = {
     "default": {
         "BACKEND":  "django.core.cache.backends.redis.RedisCache",
         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
+    }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [config("REDIS_URL")]},
     }
 }

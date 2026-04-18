@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Audio Guide - ZTrip</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .location-info {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .location-info h3 {
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .language-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .language-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .language-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .media-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .input-mode-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .video-preview {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            border-radius: 10px;
+            margin: 15px auto;
+            display: block;
+            background: #000;
+        }
+
+        .record-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: #dc3545;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .record-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .record-btn.recording {
+            background: #28a745;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+
+        .record-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .record-btn.recording .record-icon {
+            border-radius: 5px;
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .play-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .messages {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            margin-left: 20px;
+        }
+
+        .message.ai {
+            background: #f1f8e9;
+            margin-right: 20px;
+        }
+
+        .message .transcribed {
+            font-style: italic;
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .message audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .thinking {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .location-selector {
+            margin-bottom: 20px;
+        }
+
+        .location-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Audio Guide</h1>
+            <p>Ovozli savollaringizga javob beruvchi aqlli yo'lboshchi</p>
+        </div>
+
+        <div id="status" class="status">
+            <span id="statusText">Ulanmoqda...</span>
+        </div>
+
+        <div id="locationInfo" class="location-info hidden">
+            <h3 id="locationName"></h3>
+            <p id="locationDesc"></p>
+        </div>
+
+        <div class="location-selector">
+            <select id="locationSelect">
+                <option value="">Joylashuvni tanlang...</option>
+                {% for location in locations %}
+                <option value="{{ location.id }}">{{ location.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="controls">
+            <div class="language-selector">
+                <button class="language-btn active" data-lang="uz">O'zbek</button>
+                <button class="language-btn" data-lang="ru">Russian</button>
+                <button class="language-btn" data-lang="en">English</button>
+            </div>
+
+            <div class="input-mode-selector">
+                <button class="mode-btn active" data-mode="audio">Ovoz</button>
+                <button class="mode-btn" data-mode="video">Video</button>
+            </div>
+
+            <div class="media-controls">
+                <button id="recordBtn" class="record-btn" disabled>
+                    <div class="record-icon"></div>
+                </button>
+                <button id="playBtn" class="play-btn hidden">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <video id="videoPreview" class="video-preview hidden" autoplay muted></video>
+        </div>
+
+        <div id="messages" class="messages"></div>
+    </div>
+
+    <script>
+        class AudioGuide {
+            constructor() {
+                this.ws = null;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+                this.currentLanguage = 'uz';
+                this.currentAudio = null;
+                this.inputMode = 'audio'; // 'audio' or 'video'
+                this.stream = null;
+                
+                this.initElements();
+                this.initEventListeners();
+                this.connectWebSocket();
+            }
+
+            initElements() {
+                this.statusEl = document.getElementById('status');
+                this.statusTextEl = document.getElementById('statusText');
+                this.locationInfoEl = document.getElementById('locationInfo');
+                this.locationNameEl = document.getElementById('locationName');
+                this.locationDescEl = document.getElementById('locationDesc');
+                this.locationSelect = document.getElementById('locationSelect');
+                this.recordBtn = document.getElementById('recordBtn');
+                this.playBtn = document.getElementById('playBtn');
+                this.messagesEl = document.getElementById('messages');
+                this.languageBtns = document.querySelectorAll('.language-btn');
+                this.modeBtns = document.querySelectorAll('.mode-btn');
+                this.videoPreview = document.getElementById('videoPreview');
+            }
+
+            initEventListeners() {
+                this.recordBtn.addEventListener('click', () => this.toggleRecording());
+                this.playBtn.addEventListener('click', () => this.playAudio());
+                this.locationSelect.addEventListener('change', (e) => this.setLocation(e.target.value));
+                
+                this.languageBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.setLanguage(btn.dataset.lang));
+                });
+
+                this.modeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.setInputMode(btn.dataset.mode));
+                });
+            }
+
+            connectWebSocket() {
+                // Get token from localStorage or prompt user
+                const token = localStorage.getItem('auth_token') || prompt('Auth token kiriting:');
+                if (token) {
+                    localStorage.setItem('auth_token', token);
+                }
+
+                const wsUrl = `ws://localhost:8000/ws/live-guide/?token=${token}`;
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    this.updateStatus('connected', 'AI Guide ulandi!');
+                    this.recordBtn.disabled = false;
+                };
+
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleMessage(data);
+                };
+
+                this.ws.onclose = () => {
+                    this.updateStatus('error', 'Uzildi. Qayta ulanish...');
+                    setTimeout(() => this.connectWebSocket(), 3000);
+                };
+
+                this.ws.onerror = () => {
+                    this.updateStatus('error', 'Xatolik yuz berdi');
+                };
+            }
+
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'connected':
+                        this.updateStatus('connected', data.message);
+                        break;
+                    
+                    case 'location_set':
+                        this.locationInfoEl.classList.remove('hidden');
+                        this.locationNameEl.textContent = data.location.name;
+                        this.locationDescEl.textContent = data.location.description;
+                        this.updateStatus('connected', data.message);
+                        break;
+                    
+                    case 'transcribed':
+                        this.addMessage('user', data.text, '', data.text);
+                        break;
+                    
+                    case 'video_transcribed':
+                        this.addMessage('user', data.text, '', `Video savol: "${data.text}"`);
+                        break;
+                    
+                    case 'processing_video':
+                        this.addMessage('', '', 'Video qayta ishlanmoqda...');
+                        break;
+                    
+                    case 'thinking':
+                        this.addMessage('', '', 'AI o\'ylayapti...');
+                        break;
+                    
+                    case 'generating_audio':
+                        this.addMessage('', '', 'Javobga ovoz qo\'shilmoqda...');
+                        break;
+                    
+                    case 'audio_answer':
+                        this.addMessage('ai', data.text, '', '', data.audio);
+                        this.currentAudio = data.audio;
+                        this.playBtn.classList.remove('hidden');
+                        break;
+                    
+                    case 'video_answer':
+                        this.addMessage('ai', data.text, '', 'Video javob', data.audio);
+                        this.currentAudio = data.audio;
+                        this.playBtn.classList.remove('hidden');
+                        break;
+                    
+                    case 'answer':
+                        this.addMessage('ai', data.text);
+                        break;
+                    
+                    case 'error':
+                        this.updateStatus('error', data.message);
+                        this.addMessage('', '', `Xatolik: ${data.message}`);
+                        break;
+                    
+                    case 'language_set':
+                        this.updateStatus('connected', data.message);
+                        break;
+                    
+                    case 'quota_exceeded':
+                        this.updateStatus('warning', 'API limitiga yetildi. Kuting...');
+                        this.addMessage('ai', data.text, '', 'API limit', data.audio || '');
+                        this.currentAudio = data.audio || '';
+                        if (data.audio) {
+                            this.playBtn.classList.remove('hidden');
+                        }
+                        break;
+                }
+            }
+
+            setLocation(locationId) {
+                if (!locationId || !this.ws) return;
+                
+                this.ws.send(JSON.stringify({
+                    type: 'set_location',
+                    location_id: locationId
+                }));
+            }
+
+            setLanguage(language) {
+                this.currentLanguage = language;
+                
+                // Update UI
+                this.languageBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.lang === language);
+                });
+
+                // Send to server
+                if (this.ws) {
+                    this.ws.send(JSON.stringify({
+                        type: 'set_language',
+                        language: language
+                    }));
+                }
+            }
+
+            setInputMode(mode) {
+                this.inputMode = mode;
+                
+                // Update UI
+                this.modeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+
+                // Show/hide video preview
+                if (mode === 'video') {
+                    this.videoPreview.classList.remove('hidden');
+                    this.recordBtn.style.background = '#17a2b8'; // Blue for video
+                } else {
+                    this.videoPreview.classList.add('hidden');
+                    this.recordBtn.style.background = '#dc3545'; // Red for audio
+                }
+
+                // Stop current recording if active
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
+            }
+
+            async toggleRecording() {
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    await this.startRecording();
+                }
+            }
+
+            async startRecording() {
+                try {
+                    // Get media stream based on input mode
+                    const constraints = this.inputMode === 'video' 
+                        ? { video: true, audio: true }
+                        : { audio: true };
+                    
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.mediaRecorder = new MediaRecorder(this.stream);
+                    this.audioChunks = [];
+
+                    // Set video preview for video mode
+                    if (this.inputMode === 'video') {
+                        this.videoPreview.srcObject = this.stream;
+                    }
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        if (this.inputMode === 'video') {
+                            this.processVideo();
+                        } else {
+                            this.processAudio();
+                        }
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordBtn.classList.add('recording');
+                    
+                } catch (error) {
+                    console.error('Media ruxsati xatolik:', error);
+                    const errorMsg = this.inputMode === 'video' 
+                        ? 'Kamera va mikrofon ruxsatini bering'
+                        : 'Mikrofon ruxsatini bering';
+                    this.updateStatus('error', errorMsg);
+                }
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                        this.stream = null;
+                    }
+                    this.isRecording = false;
+                    this.recordBtn.classList.remove('recording');
+                    
+                    // Clear video preview
+                    if (this.inputMode === 'video') {
+                        this.videoPreview.srcObject = null;
+                    }
+                }
+            }
+
+            async processAudio() {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                
+                reader.onloadend = () => {
+                    const base64Audio = reader.result;
+                    this.sendVoiceQuestion(base64Audio);
+                };
+                
+                reader.readAsDataURL(audioBlob);
+            }
+
+            async processVideo() {
+                const videoBlob = new Blob(this.audioChunks, { type: 'video/webm' });
+                const reader = new FileReader();
+                
+                reader.onloadend = () => {
+                    const base64Video = reader.result;
+                    this.sendVideoQuestion(base64Video);
+                };
+                
+                reader.readAsDataURL(videoBlob);
+            }
+
+            sendVoiceQuestion(audioData) {
+                if (!this.ws) return;
+
+                this.ws.send(JSON.stringify({
+                    type: 'voice_question',
+                    audio: audioData,
+                    language: this.currentLanguage
+                }));
+            }
+
+            sendVideoQuestion(videoData) {
+                if (!this.ws) return;
+
+                this.ws.send(JSON.stringify({
+                    type: 'video_question',
+                    video: videoData,
+                    language: this.currentLanguage
+                }));
+            }
+
+            playAudio() {
+                if (!this.currentAudio) return;
+
+                const audio = new Audio(`data:audio/mp3;base64,${this.currentAudio}`);
+                audio.play().catch(error => {
+                    console.error('Audio playback error:', error);
+                });
+            }
+
+            addMessage(type, text, status = '', transcribed = '', audio = '') {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}`;
+
+                let content = '';
+                if (text) content += `<div>${text}</div>`;
+                if (transcribed) content += `<div class="transcribed">Aytilgan: "${transcribed}"</div>`;
+                if (status) content += `<div class="thinking">${status}</div>`;
+                if (audio) content += `<audio controls><source src="data:audio/mp3;base64,${audio}" type="audio/mpeg"></audio>`;
+
+                messageEl.innerHTML = content;
+                this.messagesEl.appendChild(messageEl);
+                this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+            }
+
+            updateStatus(type, message) {
+                this.statusEl.className = `status ${type}`;
+                this.statusTextEl.textContent = message;
+            }
+        }
+
+        // Initialize the app
+        const audioGuide = new AudioGuide();
+    </script>
+</body>
+</html>

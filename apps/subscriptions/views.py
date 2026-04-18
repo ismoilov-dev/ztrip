@@ -25,8 +25,6 @@ class SubscriptionCreateListApiView(generics.ListCreateAPIView):
 
 @extend_schema_view(
     get=extend_schema(summary="Subscription detail"),
-    put=extend_schema(summary="Subscriptionni o'zgartirish"),
-    patch=extend_schema(summary="Subscriptionni qisman o'zgartirish"),
     delete=extend_schema(summary="Subscriptionni deactivate qilish"),
 )
 class SubscriptionRetrieveUpdateDestroyAPIView(generics.RetrieveDestroyAPIView):

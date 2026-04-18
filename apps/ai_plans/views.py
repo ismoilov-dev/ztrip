@@ -1,4 +1,5 @@
 import re
+from django.shortcuts import render
 from django.utils import timezone
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
@@ -37,6 +38,20 @@ def clean_cost(value) -> float:
         return float(value)
     cleaned = re.sub(r"[^\d.]", "", str(value))
     return float(cleaned) if cleaned else 0.0
+
+
+def audio_guide_view(request):
+    """Render the audio guide interface"""
+    from apps.location.models import Location
+    
+    # Fetch all locations from database
+    locations = Location.objects.all().order_by('name')
+    
+    context = {
+        'locations': locations
+    }
+    
+    return render(request, 'audio_guide.html', context)
 
 
 class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
