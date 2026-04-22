@@ -14,7 +14,7 @@ class AudioGuideGenerator:
 
         generators = {
             "gtts":       lambda t: self._edge_tts(t, lang),
-            "megallm":    lambda t: self._edge_tts(t, lang),
+            "gemini":     lambda t: self._edge_tts(t, lang),
             "openai":     self._openai,
             "elevenlabs": self._elevenlabs,
         }

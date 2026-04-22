@@ -1,6 +1,6 @@
 import json
 import os
-import google.generativeai as genai
+from google import genai
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.utils import timezone
@@ -172,17 +172,17 @@ class LiveGuideConsumer(AsyncWebsocketConsumer):
 
                 # Get AI response
                 await self.send(json.dumps({"type": "thinking"}))
-                
+
                 prompt = text
                 if self.location_context:
                     prompt = f"{self.location_context}\n\nSavol: {text}"
 
                 response = await self.ask_gemini(prompt)
-                
+
                 # Convert response to speech
                 await self.send(json.dumps({"type": "generating_audio"}))
                 audio_response = await audio_service.text_to_speech(response, language)
-                
+
                 if audio_response:
                     audio_base64 = audio_service.encode_base64_audio(audio_response)
                     await self.send(json.dumps({
@@ -200,7 +200,7 @@ class LiveGuideConsumer(AsyncWebsocketConsumer):
 
             except Exception as e:
                 error_msg = str(e)
-                
+
                 # Check for quota exceeded
                 if "quota" in error_msg.lower() and "exceeded" in error_msg.lower():
                     fallback_response = (
@@ -208,7 +208,7 @@ class LiveGuideConsumer(AsyncWebsocketConsumer):
                         "Iltimos, birozdan so'ng yana urinib ko'ring. "
                         "Agar muammo davom etsa, administrator bilan bog'laning."
                     )
-                    
+
                     # Try to generate audio response for fallback
                     try:
                         audio_response = await audio_service.text_to_speech(fallback_response, self.audio_language)
@@ -222,7 +222,7 @@ class LiveGuideConsumer(AsyncWebsocketConsumer):
                             }))
                         else:
                             await self.send(json.dumps({
-                                "type": "quota_exceeded", 
+                                "type": "quota_exceeded",
                                 "text": fallback_response,
                             }))
                     except:
@@ -291,17 +291,17 @@ class LiveGuideConsumer(AsyncWebsocketConsumer):
 
                 # Get AI response
                 await self.send(json.dumps({"type": "thinking"}))
-                
+
                 prompt = text
                 if self.location_context:
                     prompt = f"{self.location_context}\n\nVideo savol: {text}"
 
                 response = await self.ask_gemini(prompt)
-                
+
                 # Convert response to speech
                 await self.send(json.dumps({"type": "generating_audio"}))
                 audio_response = await audio_service.text_to_speech(response, language)
-                
+
                 if audio_response:
                     audio_base64 = audio_service.encode_base64_audio(audio_response)
                     await self.send(json.dumps({

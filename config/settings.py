@@ -289,15 +289,14 @@ MEDIA_URL = f"http://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"
 # ===========================================================
 # AI AUDIO GUIDE
 # ===========================================================
-AI_PROVIDER = config("AI_PROVIDER", default="megallm")
+AI_PROVIDER = config("AI_PROVIDER", default="gemini")
 
-# MegaLLM  (hozirgi bepul provider)
-MEGALLM_API_KEY  = config("MEGALLM_API_KEY")
-MEGALLM_BASE_URL = config("MEGALLM_BASE_URL", default="https://ai.megallm.io/v1")
+# Gemini API
+GEMINI_API_KEY = config("GEMINI_API_KEY")
+GEMINI_BASE_URL = config("GEMINI_BASE_URL", default="https://generativelanguage.googleapis.com/v1beta/openai")
 
 # OpenAI  (keyinroq ulanadi)
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
-GEMINI_API_KEY = config("GEMINI_API_KEY", default=None)
 # ElevenLabs  (ko'p tilli ovoz uchun)
 ELEVENLABS_API_KEY  = config("ELEVENLABS_API_KEY",  default=None)
 ELEVENLABS_VOICE_ID = config("ELEVENLABS_VOICE_ID", default="21m00Tcm4TlvDq8ikWAM")

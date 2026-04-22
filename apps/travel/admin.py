@@ -4,11 +4,11 @@ from unfold.admin import ModelAdmin
 
 @admin.register(Travel)
 class TravelAdmin(ModelAdmin):
-    list_display = ('id', 'user', 'city', 'start_date', 'end_date', 'status')
-    list_filter = ('status', 'city')
-    search_fields = ('user__email', 'city')
+    list_display = ('id', 'user', 'title', 'start_date', 'end_date', 'status')
+    list_filter = ('status', 'start_date')
+    search_fields = ('user__email', 'title')
 
-admin.site.register(TravelLocation)
+@admin.register(TravelLocation)
 class TravelLocationAdmin(ModelAdmin):
-    list_display = ('travel', 'location', 'day_number', 'order')
-    list_filter = ('day_number', 'order')
+    list_display = ('travel', 'location', 'visit_day', 'order_index')
+    list_filter = ('visit_day', 'order_index')
