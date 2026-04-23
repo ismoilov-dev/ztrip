@@ -54,7 +54,7 @@ class LocationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = [
-            "id", "name", "city", "country",
+            "id", "name", "description", "city", "country",
             "type", "type_display", "image",
             "price", "is_premium", "latitude", "longitude",
         ]
