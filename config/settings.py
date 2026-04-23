@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG      = config("DEBUG", default=False, cast=bool)
+USE_HTTPS  = config("USE_HTTPS", default=False, cast=bool)
 
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
@@ -21,6 +22,18 @@ ALLOWED_HOSTS = config(
 
 SITE_ID         = 1
 AUTH_USER_MODEL = "users.User"
+
+# ===========================================================
+# SECURITY & PROXY (Nginx orqali ishlash uchun)
+# ===========================================================
+# Nginx orqali kelgan HTTPS so'rovlarni to'g'ri aniqlash
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:8000,http://127.0.0.1:8000",
+    cast=lambda v: [o.strip() for o in v.split(",")]
+)
 
 # ===========================================================
 # APPLICATIONS
@@ -86,10 +99,11 @@ MIDDLEWARE = [
 ]
 
 # ===========================================================
-# URLS / TEMPLATES / WSGI
+# URLS / TEMPLATES / WSGI / ASGI
 # ===========================================================
 ROOT_URLCONF      = "config.urls"
 WSGI_APPLICATION  = "config.wsgi.application"
+ASGI_APPLICATION  = "config.asgi.application"
 
 TEMPLATES = [
     {
@@ -118,7 +132,7 @@ DATABASES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-ASGI_APPLICATION = "config.asgi.application"
+
 # ===========================================================
 # AUTHENTICATION
 # ===========================================================
@@ -264,16 +278,17 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # ===========================================================
 # MINIO (Media Storage)
 # ===========================================================
+PROTOCOL_SCHEME = "https" if USE_HTTPS else "http"
+
 AWS_ACCESS_KEY_ID       = config("MINIO_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY   = config("MINIO_SECRET_KEY")
 AWS_STORAGE_BUCKET_NAME = config("MINIO_BUCKET")
-AWS_S3_ENDPOINT_URL     = f"http://{config('MINIO_ENDPOINT')}"  # ← .env da 9002
+AWS_S3_ENDPOINT_URL     = f"{PROTOCOL_SCHEME}://{config('MINIO_ENDPOINT')}"
+AWS_S3_CUSTOM_DOMAIN    = config("MINIO_ENDPOINT")
 AWS_DEFAULT_ACL         = "public-read"
 AWS_S3_FILE_OVERWRITE   = False
 AWS_QUERYSTRING_AUTH    = False
 AWS_S3_VERIFY           = False
-
-MEDIA_URL = f"http://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"  # ← shu qator qo'shing
 
 STORAGES = {
     "default": {
@@ -284,7 +299,7 @@ STORAGES = {
     },
 }
 
-MEDIA_URL = f"http://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"
+MEDIA_URL = f"{PROTOCOL_SCHEME}://{config('MINIO_ENDPOINT')}/{config('MINIO_BUCKET')}/"
 
 # ===========================================================
 # AI AUDIO GUIDE
@@ -295,17 +310,20 @@ AI_PROVIDER = config("AI_PROVIDER", default="gemini")
 GEMINI_API_KEY = config("GEMINI_API_KEY")
 GEMINI_BASE_URL = config("GEMINI_BASE_URL", default="https://generativelanguage.googleapis.com/v1beta/openai")
 
-# OpenAI  (keyinroq ulanadi)
+# OpenAI
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
-# ElevenLabs  (ko'p tilli ovoz uchun)
+
+# ElevenLabs
 ELEVENLABS_API_KEY  = config("ELEVENLABS_API_KEY",  default=None)
 ELEVENLABS_VOICE_ID = config("ELEVENLABS_VOICE_ID", default="21m00Tcm4TlvDq8ikWAM")
 
-# Redis
-CELERY_BROKER_URL                    = config("REDIS_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND                = config("REDIS_URL", default="redis://localhost:6379/0")
-CELERY_ACCEPT_CONTENT                = ["json"]
-CELERY_TASK_SERIALIZER               = "json"
+# ===========================================================
+# CELERY & CHANNELS (Redis)
+# ===========================================================
+CELERY_BROKER_URL                         = config("REDIS_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND                     = config("REDIS_URL", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT                     = ["json"]
+CELERY_TASK_SERIALIZER                    = "json"
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CACHES = {
