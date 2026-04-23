@@ -254,11 +254,8 @@ SPECTACULAR_SETTINGS = {
 # ===========================================================
 # CORS
 # ===========================================================
-CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000",
-    cast=lambda v: [o.strip() for o in v.split(",")],
-)
+
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # ===========================================================
