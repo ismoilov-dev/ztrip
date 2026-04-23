@@ -82,7 +82,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ["full_name", "avatar_url", "country", "language_code"]
-    
+
 class LoginSerializers(serializers.Serializer):
     email = serializers.EmailField()
     avatar_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)

@@ -63,12 +63,12 @@ class MeView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(UserSerializer(request.user).data)
-        
+
 @extend_schema(tags=['auth'], summary='Email + avatar orqali login')
 class LoginView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializers
-    
+
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -80,7 +80,6 @@ class LoginView(GenericAPIView):
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
-                'username': email,        # agar username majburiy bo'lsa
                 'avatar_url': avatar_url,
             }
         )
