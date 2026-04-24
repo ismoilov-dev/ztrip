@@ -116,9 +116,19 @@ class RequestOTPView(APIView):
     def post(self, request):
         s = RequestOTPSerializer(data=request.data)
         s.is_valid(raise_exception=True)
-        ok, msg = send_otp(s.validated_data["email"])
+        
+        email = s.validated_data["email"]
+        
+        # Check if user exists in database
+        from .models import User
+        user_exists = User.objects.filter(email=email).exists()
+        
+        ok, msg = send_otp(email)
         return Response(
-            {"detail": msg},
+            {
+                "detail": msg,
+                "is_new_user": not user_exists
+            },
             status=status.HTTP_200_OK if ok else status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
@@ -148,10 +158,15 @@ class VerifyOTPView(APIView):
             defaults={"is_active": True},
         )
 
+        # If user was just created or is still marked as new user, update is_new_user to False
+        if created or user.is_new_user:
+            user.is_new_user = False
+            user.save(update_fields=['is_new_user'])
+
         refresh = RefreshToken.for_user(user)
         return Response({
             "detail": msg,
             "is_new_user": created or user.is_new_user,
             "access": str(refresh.access_token),
-            "refresh": str(refresh),
+            # "refresh": str(refresh),
         }, status=status.HTTP_200_OK)

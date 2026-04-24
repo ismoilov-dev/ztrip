@@ -4,4 +4,4 @@ from unfold.admin import ModelAdmin
 
 @admin.register(User)
 class UserAdmin(ModelAdmin):
-  list_display = ['email', 'is_premium']
+  list_display = ['id', 'email', 'is_premium']
