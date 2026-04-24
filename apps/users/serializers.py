@@ -86,3 +86,23 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class LoginSerializers(serializers.Serializer):
     email = serializers.EmailField()
     avatar_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+
+
+class RequestOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        help_text="Foydalanuvchi emaili"
+    )
+    code = serializers.CharField(
+        min_length=6,
+        max_length=6,
+        help_text="6 xonali tasdiqlash kodi",
+    )
+
+    def validate_code(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("Kod faqat raqamlardan iborat bo'lishi kerak.")
+        return value

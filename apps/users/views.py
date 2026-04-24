@@ -1,13 +1,17 @@
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from apps.users.models import User
 
-from .serializers import GoogleAuthSerializer, UserSerializer, UserUpdateSerializer, LoginSerializers
-
+from .serializers import GoogleAuthSerializer, UserSerializer, UserUpdateSerializer, LoginSerializers, RequestOTPSerializer, VerifyOTPSerializer
+from .models import User
+from .utils import send_otp, verify_otp
 
 def _jwt_tokens(user):
     refresh = RefreshToken.for_user(user)
@@ -97,4 +101,57 @@ class LoginView(GenericAPIView):
             #     'email': user.email,
             #     'avatar_url': user.avatar_url,
             # }
+        }, status=status.HTTP_200_OK)
+
+class RequestOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=RequestOTPSerializer,
+        responses={
+            200: OpenApiResponse(description="OTP yuborildi"),
+            429: OpenApiResponse(description="Juda ko'p so'rov"),
+        },
+    )
+    def post(self, request):
+        s = RequestOTPSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        ok, msg = send_otp(s.validated_data["email"])
+        return Response(
+            {"detail": msg},
+            status=status.HTTP_200_OK if ok else status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+
+class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=VerifyOTPSerializer,
+        responses={
+            200: OpenApiResponse(description="OTP muvaffaqiyatli tasdiqlandi"),
+            400: OpenApiResponse(description="Noto'g'ri email yoki kod"),
+        },
+    )
+    def post(self, request):
+        s = VerifyOTPSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        email = s.validated_data["email"]
+        code = s.validated_data["code"]
+
+        ok, msg = verify_otp(email, code)
+        if not ok:
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={"is_active": True},
+        )
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "detail": msg,
+            "is_new_user": created or user.is_new_user,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
         }, status=status.HTTP_200_OK)
