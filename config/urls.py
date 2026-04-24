@@ -21,7 +21,7 @@ urlpatterns = [
     path('', include('apps.travel.urls')),
     path('', include('apps.saved_locations.urls')),
     path('', include('apps.subscriptions.urls')),
-    path('coin/', include('apps.coin.urls')),
+    path('process/', include('apps.coin.urls')),
 
 ]
 
