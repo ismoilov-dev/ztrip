@@ -9,21 +9,23 @@ LANGUAGE_MAP = {
 
 
 def get_locations(city: str, interests: list) -> list:
-    qs = Location.objects.filter(city__icontains=city)
-    if interests:
-        qs = qs.filter(type__in=interests)
-    if not qs.exists():
-        qs = Location.objects.filter(city__icontains=city)
-    if not qs.exists():
+    general_words = ["uzbekistan", "o'zbekiston", "узбекистан", "all", ""]
+    if city.lower().strip() in general_words:
         qs = Location.objects.all()[:25]
+    else:
+        qs = Location.objects.filter(city__icontains=city)
+        if interests:
+            qs = qs.filter(type__in=interests)
+        if not qs.exists():
+            qs = Location.objects.all()[:25]
+
     return [
         {
-            "id": l.id,
-            "name": l.name,
-            "type": l.get_type_display(),
-            "city": l.city,
+            "id":    l.id,
+            "name":  l.name,
+            "type":  l.get_type_display(),
+            "city":  l.city,
             "price": float(l.price),
-            "desc": (l.description or "")[:80],
         }
         for l in qs
     ]
@@ -37,36 +39,36 @@ Foydalanuvchi bergan ma'lumotlar asosida kunlik marshrut tuzasan.
 
 QOIDALAR:
 1. FAQAT berilgan locations ID laridan foydalanasan
-2. Bir kunda 3-5 ta location
-3. Locationlarni geografik yaqinligiga qarab tartiblaysan
-4. Faqat sof JSON qaytarasan — izoh, markdown YO'Q"""
+2. Bir kunda 2-4 ta location
+3. Faqat sof JSON qaytarasan — izoh, markdown YO'Q"""
 
-TRAVEL_PLANNER_SCHEMA = {
-    "days": [{
-        "day": "<int>",
-        "title": "<str>",
-        "locations": [{
-            "id": "<int>",
-            "duration_min": "<int>",
-            "best_time": "<str>",
-            "tip": "<str>",
-        }],
-    }],
-    "total_estimated_cost": "<int> UZS",
-    "best_season": "<str>",
-    "summary": "<str>",
-    "tips": "<str>",
-}
 
 def travel_planner_prompt(city, days, budget, interests, language, locations):
-    return f"""SHAHAR:{city} KUN:{days} BYUDJET:{f'{budget:,.0f} UZS' if budget else 'ochiq'}
-QIZIQISHLAR:{', '.join(interests) or 'hammasi'} TIL:{LANGUAGE_MAP.get(language,'O\'zbek tilida')}
+    lang = LANGUAGE_MAP.get(language, "O'zbek tilida")
+    return f"""{lang} javob ber.
 
-LOCATIONLAR:
+SHAHAR: {city}
+KUNLAR: {days}
+BYUDJET: {f'{budget:,.0f} UZS' if budget else 'ochiq'}
+QIZIQISHLAR: {', '.join(interests) if interests else 'hammasi'}
+
+FAQAT quyidagi locationlardan foydalanib plan tuz:
 {json.dumps(locations, ensure_ascii=False)}
 
-FORMAT (aynan shu strukturada qaytarasan):
-{json.dumps(TRAVEL_PLANNER_SCHEMA, ensure_ascii=False)}"""
+JSON formatida qaytar (boshqa hech narsa yozma):
+{{
+  "days": [
+    {{
+      "day": 1,
+      "title": "kun sarlavhasi",
+      "locations": [
+        {{"id": 1, "duration_min": 60, "tip": "qisqa maslahat"}}
+      ]
+    }}
+  ],
+  "total_cost": "narx UZS",
+  "summary": "qisqa xulosa"
+}}"""
 
 
 # ═══════════════════════════════════════════════
@@ -82,25 +84,29 @@ QOIDALAR:
 4. Kirish narxi, ish vaqti, amaliy maslahat
 5. Faqat sof JSON qaytarasan"""
 
-AUDIO_GUIDE_SCHEMA = {
-    "location_id": "<int>",
-    "title": "<str>",
-    "script": "<str> 150-200 so'z",
-    "duration_sec": "<int>",
-    "highlights": ["<str>"],
-    "practical_info": {
-        "open_hours": "<str>",
-        "entry_fee": "<str>",
-        "tip": "<str>",
-    },
-}
 
 def audio_guide_prompt(location_id, name, loc_type, description, language):
-    return f"""JOY:{name} TUR:{loc_type} TIL:{LANGUAGE_MAP.get(language,'O\'zbek tilida')}
-TAVSIF:{(description or '')[:200]} LOCATION_ID:{location_id}
+    lang = LANGUAGE_MAP.get(language, "O'zbek tilida")
+    return f"""{lang} javob ber.
 
-FORMAT:
-{json.dumps(AUDIO_GUIDE_SCHEMA, ensure_ascii=False)}"""
+JOY: {name}
+TUR: {loc_type}
+TAVSIF: {(description or '')[:200]}
+LOCATION_ID: {location_id}
+
+JSON formatida qaytar:
+{{
+  "location_id": {location_id},
+  "title": "joy nomi",
+  "script": "150-200 so'zlik audio matn",
+  "duration_sec": 75,
+  "highlights": ["fakt 1", "fakt 2"],
+  "practical_info": {{
+    "open_hours": "9:00-18:00",
+    "entry_fee": "bepul yoki narxi",
+    "tip": "amaliy maslahat"
+  }}
+}}"""
 
 
 # ═══════════════════════════════════════════════
@@ -112,25 +118,28 @@ Foydalanuvchi qiziqishlari asosida yangi joylar tavsiya qilasan.
 QOIDALAR:
 1. Avval borilgan joylarni TAVSIYA QILMA
 2. Har tavsiya uchun aniq sabab
-3. must_see/hidden_gem/popular kategoriyalarga ajrat
-4. Faqat sof JSON qaytarasan"""
+3. Faqat sof JSON qaytarasan"""
 
-RECOMMENDER_SCHEMA = {
-    "recommendations": [{
-        "location_id": "<int>",
-        "score": "<float> 0.0-1.0",
-        "reason": "<str>",
-        "category": "must_see|hidden_gem|popular",
-    }],
-    "message": "<str>",
-}
 
 def recommender_prompt(interests, visited_ids, locations, language):
-    return f"""QIZIQISHLAR:{', '.join(interests) or 'belgilanmagan'}
-BORILGAN_IDlar:{visited_ids or 'yo\'q'} TIL:{LANGUAGE_MAP.get(language,'O\'zbek tilida')}
+    lang = LANGUAGE_MAP.get(language, "O'zbek tilida")
+    return f"""{lang} javob ber.
+
+QIZIQISHLAR: {', '.join(interests) if interests else 'belgilanmagan'}
+BORILGAN IDlar: {visited_ids or 'yo\'q'}
 
 LOCATIONLAR:
 {json.dumps(locations, ensure_ascii=False)}
 
-FORMAT:
-{json.dumps(RECOMMENDER_SCHEMA, ensure_ascii=False)}"""
+JSON formatida qaytar:
+{{
+  "recommendations": [
+    {{
+      "location_id": 1,
+      "score": 0.9,
+      "reason": "sabab",
+      "category": "must_see"
+    }}
+  ],
+  "message": "umumiy xabar"
+}}"""

@@ -218,8 +218,14 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_CLASSES": [],  # Throttle o'chirildi
-    "DEFAULT_THROTTLE_RATES": {},  # Kerak emas
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": config("THROTTLE_ANON", default="100/day"),
+        "user": config("THROTTLE_USER", default="1000/day"),
+    },
     "DEFAULT_RENDERER_CLASSES": (
         [
             "rest_framework.renderers.JSONRenderer",
