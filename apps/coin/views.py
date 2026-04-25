@@ -10,6 +10,7 @@ from .serializers import UserCoinSerializer, UserCoinUpdateSerializer
 
 
 class UserCoinView(APIView):
+    serializer_class = UserCoinUpdateSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self, user_id):
