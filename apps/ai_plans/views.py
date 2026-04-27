@@ -26,32 +26,11 @@ from .prompt import (
 from .ai_client import call_ai
 
 
-def is_premium(user):
-    return user.subscriptions.filter(
-        plan="premium",
-        is_active=True,
-    ).exists()
-
-
 def clean_cost(value) -> float:
     if isinstance(value, (int, float)):
         return float(value)
     cleaned = re.sub(r"[^\d.]", "", str(value))
     return float(cleaned) if cleaned else 0.0
-
-
-def audio_guide_view(request):
-    """Render the audio guide interface"""
-    from apps.location.models import Location
-    
-    # Fetch all locations from database
-    locations = Location.objects.all().order_by('name')
-    
-    context = {
-        'locations': locations
-    }
-    
-    return render(request, 'audio_guide.html', context)
 
 
 class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
@@ -66,10 +45,6 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             user=self.request.user
         ).order_by("-created_at")
 
-    # ── GET /ai-plans/  +  GET /ai-plans/{id}/ ────────────────
-    # ListModelMixin + RetrieveModelMixin orqali avtomatik
-
-    # ── POST /ai-plans/generate/ ──────────────────────────────
     @extend_schema(
         request=AIPlanGenerateSerializer,
         responses={201: AIPlanSerializer},
@@ -77,18 +52,6 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="generate")
     def generate(self, request):
-        # Free user — kuniga 3ta limit
-        if not is_premium(request.user):
-            today_count = AIPlan.objects.filter(
-                user=request.user,
-                created_at__date=timezone.now().date(),
-            ).count()
-            if today_count >= 3:
-                return Response(
-                    {"error": "Kunlik limit 3ta. Premium oling."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
         s = AIPlanGenerateSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
@@ -109,6 +72,27 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         except RuntimeError as e:
             return Response({"error": str(e)}, status=503)
 
+        location_ids = [
+            loc.get("id")
+            for day in plan_json.get("days", [])
+            for loc in day.get("locations", [])
+            if loc.get("id")
+        ]
+        db_locations = {
+            l.id: l
+            for l in Location.objects.filter(id__in=location_ids)
+        }
+
+        for day in plan_json.get("days", []):
+            for loc in day.get("locations", []):
+                loc_id = loc.get("id")
+                if loc_id in db_locations:
+                    db_loc = db_locations[loc_id]
+                    loc["name"]  = db_loc.name
+                    loc["lat"]   = float(db_loc.latitude)  if db_loc.latitude  else None
+                    loc["lng"]   = float(db_loc.longitude) if db_loc.longitude else None
+                    loc["image"] = db_loc.image.url if db_loc.image else None
+
         ai_plan = AIPlan.objects.create(
             user=request.user,
             city=d["city"],
@@ -126,7 +110,6 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    # ── POST /ai-plans/{id}/apply/ ────────────────────────────
     @extend_schema(
         request=AIPlanApplySerializer,
         summary="AI planni Travel ga aylantirish",
@@ -153,7 +136,7 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             title=f"{ai_plan.city} — {ai_plan.days} kun",
             start_date=d["start_date"],
             end_date=d["end_date"],
-            budget=clean_cost(plan.get("total_estimated_cost", 0)),
+            budget=clean_cost(plan.get("total_cost", 0)),
             status=TravelStatus.DRAFT,
         )
 
@@ -180,20 +163,12 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             "message": "Travel muvaffaqiyatli yaratildi!",
         }, status=status.HTTP_201_CREATED)
 
-    # ── POST /ai-plans/recommend/ ─────────────────────────────
     @extend_schema(
         request=RecommendRequestSerializer,
         summary="Shaxsiy joy tavsiyalari",
     )
     @action(detail=False, methods=["POST"], url_path="recommend")
     def recommend(self, request):
-        # Premium only
-        if not is_premium(request.user):
-            return Response(
-                {"error": "Tavsiyalar faqat premium foydalanuvchilar uchun."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         s = RecommendRequestSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
@@ -219,20 +194,12 @@ class AIPlanViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
         return Response(result, status=status.HTTP_200_OK)
 
-    # ── POST /ai-plans/{id}/audio-guide/ ──────────────────────
     @extend_schema(
         request=AudioGuideRequestSerializer,
         summary="Location uchun AI audio gid skripti",
     )
     @action(detail=True, methods=["POST"], url_path="audio-guide")
     def audio_guide(self, request, pk=None):
-        # Premium only
-        if not is_premium(request.user):
-            return Response(
-                {"error": "Audio guide faqat premium foydalanuvchilar uchun."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         s = AudioGuideRequestSerializer(data=request.data)
         s.is_valid(raise_exception=True)
 

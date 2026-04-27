@@ -20,8 +20,6 @@ class AIPlanGenerateSerializer(serializers.Serializer):
         choices=["uz", "ru", "en"],
         default="uz",
     )
-
-
 class AIPlanApplySerializer(serializers.Serializer):
     start_date = serializers.DateField()
     end_date   = serializers.DateField()

@@ -10,26 +10,30 @@ LANGUAGE_MAP = {
 
 def get_locations(city: str, interests: list) -> list:
     general_words = ["uzbekistan", "o'zbekiston", "узбекистан", "all", ""]
+    
     if city.lower().strip() in general_words:
-        qs = Location.objects.all()[:25]
+        qs = Location.objects.all()
     else:
         qs = Location.objects.filter(city__icontains=city)
-        if interests:
-            qs = qs.filter(type__in=interests)
         if not qs.exists():
-            qs = Location.objects.all()[:25]
+            qs = Location.objects.all()
 
+    # Interests bo'yicha filter
+    if interests:
+        filtered = qs.filter(type__in=interests)
+        if filtered.exists():
+            qs = filtered
+
+    # Faqat eng kerakli fieldlar — token tejash
     return [
         {
-            "id":    l.id,
-            "name":  l.name,
-            "type":  l.get_type_display(),
-            "city":  l.city,
-            "price": float(l.price),
+            "id":   l.id,
+            "name": l.name,
+            "type": l.get_type_display(),
+            "city": l.city,
         }
-        for l in qs
+        for l in qs[:10]  # max 10 ta
     ]
-
 
 # ═══════════════════════════════════════════════
 # ROLE 1 — TRAVEL PLANNER
@@ -45,6 +49,13 @@ QOIDALAR:
 
 def travel_planner_prompt(city, days, budget, interests, language, locations):
     lang = LANGUAGE_MAP.get(language, "O'zbek tilida")
+    
+    # Dinamik kun schema
+    days_schema = ",\n    ".join([
+        f'{{"day": {i}, "title": "kun sarlavhasi", "locations": [{{"id": 1, "duration_min": 60, "tip": "maslahat"}}]}}'
+        for i in range(1, days + 1)
+    ])
+    
     return f"""{lang} javob ber.
 
 SHAHAR: {city}
@@ -55,16 +66,12 @@ QIZIQISHLAR: {', '.join(interests) if interests else 'hammasi'}
 FAQAT quyidagi locationlardan foydalanib plan tuz:
 {json.dumps(locations, ensure_ascii=False)}
 
+MUHIM: Aynan {days} ta kun bo'lishi SHART!
+
 JSON formatida qaytar (boshqa hech narsa yozma):
 {{
   "days": [
-    {{
-      "day": 1,
-      "title": "kun sarlavhasi",
-      "locations": [
-        {{"id": 1, "duration_min": 60, "tip": "qisqa maslahat"}}
-      ]
-    }}
+    {days_schema}
   ],
   "total_cost": "narx UZS",
   "summary": "qisqa xulosa"
